@@ -6,7 +6,8 @@
   "dependencies": {
     "botbuilder": "^3.13.1",
     "botbuilder-azure": "^3.0.4",
-	"http": "^9.11.1"
+	"http": "*"
+	
   },
   "devDependencies": {
     "restify": "^5.0.0"
