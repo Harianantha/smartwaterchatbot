@@ -167,22 +167,146 @@ bot.dialog('handleBilling', [
 		
 		var reg = new RegExp('/^(?:[1-9]\d*|\d)$/');
 		var validity=isANumber(meterId);
+		var consumptionEndPoint=process.env['ConsumptionServiceEndpoint'];
 		if(validity){
 			session.conversationData.meterId=meterId;
+			var header = {
+						'Content-Type': 'application/json; charset=utf8',
+						'Accept' : 'application/json'
+			}
+			var now = new Date();
+			var endDate = now.toJSON();
+			
+			var startDate=new Date(now.getFullYear (),now.getMonth(),1);
+			var startJson= startDate.toJSON();
+			//var startJson=now.getFullYear ()+'-'+now.getMonth()+'-01';
+			var consumption={"vendorId":1,"customerId":5,"blockId":0,"houseId":meterId,"startTime":startJson,"endTime":endDate,"Location_Details":"Yes","sampleDistance": "Day","sampleDistanceValue": 1,"metrics": "readings","defaultValueForMissingData":0};
+		   var request = require('request');
+					
+			request({
+					method: 'POST',
+					headers:  {
+						'Content-Type': 'application/json',
+						'Accept' : 'application/json'
+						},
+					//url: "http://localhost:8085/telemetry/instance/data",
+					url:consumptionEndPoint,
+					json: consumption
+					//form : consumption
+			}, function(error, response, body) {
+					console.log('error:', error); // Print the error if one occurred
+					//console.log('body:', body);
+					var responsejson = body;
+					var tempconsumption = getConsumption(body);
+					var totalConsumption= precisionRound(tempconsumption,1);
+					var billSoFar = totalConsumption *10;
+					
+					var currentDate= new Date();
+					var dayofmonth=currentDate.getDate();
+					var projectedconsumption=totalConsumption;
+					if(dayofmonth <30){
+						
+						var averageConsumptionPerDay=totalConsumption/dayofmonth;
+						var daysRemaining=30- dayofmonth;
+						var remainingconsumption=averageConsumptionPerDay*daysRemaining;
+						projectedconsumption=precisionRound((totalConsumption+remainingconsumption),1);
+						
+					}
+					var projectedbill=projectedconsumption *10;
+				
+					session.send('Your consumption till date far for this month  is '+ totalConsumption+' meter cubes.');
+					session.send('Your projected consumption for this month  is '+ projectedconsumption+' meter cubes.');
+					session.send('Your bill till date  for this month  is '+ billSoFar+' rupees.');
+					session.send('Your projected bill for this month  is '+ projectedbill+' rupees.');
+					session.endDialog();
+				
+			});
+
 		}else{
-			session.send('Please enter a valid MeterId');
-			session.endDialog();
+			session.send('MeterId enter is invalid');
+			session.beginDialog('handleBilling');
 		}
 		
 	}
-]).triggerAction({
-    matches: [/billing/i,/bill/i, /billing/],
-    onInterrupted: function (session) {
-       session.send('Welcome to customer Service');
-		session.send('We can help you in Billing related queries');
-		session.conversationData.lastops='customerservice';
-    }
-});
+]);
+
+
+bot.dialog('handleLastMonthBilling', [
+    function (session) {
+		
+			builder.Prompts.text(session, 'Please Enter your consumer Id or Meter Id');	
+			
+		
+    },
+	function (session,results) {
+		var meterId= results.response;
+		
+		var reg = new RegExp('/^(?:[1-9]\d*|\d)$/');
+		var validity=isANumber(meterId);
+		var consumptionEndPoint=process.env['ConsumptionServiceEndpoint'];
+		if(validity){
+			session.conversationData.meterId=meterId;
+			var header = {
+						'Content-Type': 'application/json; charset=utf8',
+						'Accept' : 'application/json'
+			}
+			var startDate = new Date();
+			
+			startDate.setMonth(startDate.getMonth()-1);
+			startDate.setDate(1);
+
+			
+			var startJson= startDate.toJSON();
+			
+			var endDate = new Date();
+			
+			endDate.setMonth(endDate.getMonth()-1);
+			endDate.setDate(30);
+
+			
+			var startJson= startDate.toJSON();
+			
+			var endJson= endDate.toJSON();
+			
+			//var startJson=now.getFullYear ()+'-'+now.getMonth()+'-01';
+			var consumption={"vendorId":1,"customerId":5,"blockId":0,"houseId":meterId,"startTime":startJson,"endTime":endJson,"Location_Details":"Yes","sampleDistance": "Day","sampleDistanceValue": 1,"metrics": "readings","defaultValueForMissingData":0};
+		   var request = require('request');
+					
+			request({
+					method: 'POST',
+					headers:  {
+						'Content-Type': 'application/json',
+						'Accept' : 'application/json'
+						},
+					//url: "http://localhost:8085/telemetry/instance/data",
+					url:consumptionEndPoint,
+					json: consumption
+					//form : consumption
+			}, function(error, response, body) {
+					console.log('error:', error); // Print the error if one occurred
+					//console.log('body:', body);
+					var responsejson = body;
+					var tempconsumption = getConsumption(body);
+					var totalConsumption= precisionRound(tempconsumption,1);
+					var billSoFar = totalConsumption *10;
+					
+					
+				
+					session.send('Your last month consumption   is '+ totalConsumption+' meter cubes.');
+					
+					session.send('Your bill for last  month  is '+ billSoFar+' rupees.');
+					
+					session.endDialog();
+				
+			});
+
+		}else{
+			session.send('MeterId enter is invalid');
+			session.beginDialog('handleBilling');
+		}
+		
+	}
+]);
 
 
 
@@ -214,26 +338,7 @@ bot.dialog('handleConsumption', [
 			var startJson= startDate.toJSON();
 			//var startJson=now.getFullYear ()+'-'+now.getMonth()+'-01';
 			var consumption={"vendorId":1,"customerId":5,"blockId":0,"houseId":meterId,"startTime":startJson,"endTime":endDate,"Location_Details":"Yes","sampleDistance": "Day","sampleDistanceValue": 1,"metrics": "readings","defaultValueForMissingData":0};
-			//var obj = JSON.parse(consumption);
-			//console.log('json is %s',obj);
-		/*	var options = {
-				host: 'localhost',
-				port: 8088,
-				path: '/leakage/daily/metrics/',
-				method: 'POST',
-				form : obj,
-				json: true
-			};*/
-			
-			/*http.request(options, function(response) {
-					//console.log(response);
-					
-					response.on('data', function (cbresponse) {
-						console.log(cbresponse);
-
-					});
-					})*/
-					 var request = require('request');
+		   var request = require('request');
 					
 			request({
 					method: 'POST',
@@ -251,25 +356,29 @@ bot.dialog('handleConsumption', [
 					var responsejson = body;
 					var tempconsumption = getConsumption(body);
 					var totalConsumption= precisionRound(tempconsumption,1);
-				/*	var length=responsejson[0].series.length;
-					var totalConsumption=0;
-					if(length>0){
-					var startConsumption =responsejson[0].series[0].value;
-					var endConsumption= responsejson[0].series[length -1 ].value;
-					var tempconsumption = endConsumption - startConsumption;
 					
-					totalConsumption= precisionRound(tempconsumption,1);
-					//totalConsumption=Math.pow(getConsumption(body),1);
-					//totalConsumption = getConsumption(body);
-					}*/
-					session.send('Your total consumption so far for the month  is '+ totalConsumption+' meter cubes.');
+					var currentDate= new Date();
+					var dayofmonth=currentDate.getDate();
+					var projectedconsumption=totalConsumption;
+					if(dayofmonth <30){
+						
+						var averageConsumptionPerDay=totalConsumption/dayofmonth;
+						var daysRemaining=30- dayofmonth;
+						var remainingconsumption=averageConsumptionPerDay*daysRemaining;
+						projectedconsumption=precisionRound((totalConsumption+remainingconsumption),1);
+						
+					}
 					
+				
+					session.send('Your consumption till date far for this month  is '+ totalConsumption+' meter cubes.');
+					session.send('Your estimated consumption for this month  is '+ projectedconsumption+' meter cubes.');
+					session.endDialog();
 				
 			});
 
 		}else{
-			session.send('Please enter a valid MeterId');
-			session.endDialog();
+			session.send('MeterId enter is invalid');
+			session.beginDialog('handleConsumption');
 		}
 		
 	}
@@ -289,12 +398,16 @@ function precisionRound(number, precision) {
 function getConsumption(body){
 	
 	var responsejson = body;
-	var length=responsejson[0].series.length;
 	var totalConsumption=0;
-	if(length>0){
-	var startConsumption =responsejson[0].series[0].value;
-	var endConsumption= responsejson[0].series[length -1 ].value;
-	var totalConsumption= endConsumption - startConsumption;
+	
+	if(responsejson && responsejson.length > 0 && responsejson[0].series){
+	var length=responsejson[0].series.length;
+	
+		if(length>0){
+		var startConsumption =responsejson[0].series[0].value;
+		var endConsumption= responsejson[0].series[length -1 ].value;
+		var totalConsumption= endConsumption - startConsumption;
+		}
 	}
 	return totalConsumption;
 }
@@ -311,7 +424,7 @@ bot.dialog('NA', [
 		
 			//builder.Prompts.text(session, "Please enter the new address to which you would like to ship your product(Enter in a signle line)");
 			session.send("We are sorry, you have typed a request we could not help you");
-			session.send("Please type a question related to your jcrew.com experience");
+			session.send("We could help you in your billing and consumption related questions.");
 			//session.endConversation();
 			session.endDialog();
 		}
@@ -328,6 +441,11 @@ function getDialogForIntent(intentVal){
   if(intentVal == 'checkconsumption'){
     chosendialog='handleConsumption';
   }
+  if(intentVal == 'lastmonthbill'){
+    chosendialog='handleLastMonthBilling';
+  }
+  
+  
   if(intentVal == 'NA'){
     chosendialog='NA';
   }
