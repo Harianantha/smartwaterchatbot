@@ -66,11 +66,12 @@ function(session){
 function (session, args) {
    
 	session.conversationData.meterId='1234';
-	
+	var intent='NA';
 	LUISclient.predict(session.message.text, {
 					
 						//On success of prediction
 							onSuccess: function (response) {
+							console.log('Response is %s',response);
 								
 							intent = response.topScoringIntent.intent;
 							console.log('Response is');
@@ -199,38 +200,63 @@ bot.dialog('handleConsumption', [
 		
 		var reg = new RegExp('/^(?:[1-9]\d*|\d)$/');
 		var validity=isANumber(meterId);
+		var consumptionEndPoint=process.env['ConsumptionServiceEndpoint'];
 		if(validity){
 			session.conversationData.meterId=meterId;
-			var consumption="{ 'vendorId':1,'customerId':5,'blockId':0,'houseId':1234,'startTime':'2018-04-01','endTime':'2018-04-15','Location_Details':'Yes','sampleDistance': 'Day','sampleDistanceValue': 1,'metrics': 'readings','defaultValueForMissingData':0}";
+			var header = {
+						'Content-Type': 'application/json; charset=utf8',
+						'Accept' : 'application/json'
+			}
+			var consumption={"vendorId":1,"customerId":5,"blockId":0,"houseId":1234,"startTime":"2018-04-01","endTime":"2018-04-15","Location_Details":"Yes","sampleDistance": "Day","sampleDistanceValue": 1,"metrics": "readings","defaultValueForMissingData":0};
 			//var obj = JSON.parse(consumption);
-			var options = {
-				host: '52.170.92.62',
-				port: 8085,
-				path: '/telemetry/instance/data/',
+			//console.log('json is %s',obj);
+		/*	var options = {
+				host: 'localhost',
+				port: 8088,
+				path: '/leakage/daily/metrics/',
 				method: 'POST',
-				form : consumption
-			};
+				form : obj,
+				json: true
+			};*/
 			
-			http.request(options, function(response) {
+			/*http.request(options, function(response) {
 					//console.log(response);
 					
 					response.on('data', function (cbresponse) {
 						console.log(cbresponse);
 
 					});
-				/*if (!error && response.statusCode == 200) {
+					})*/
+					 var request = require('request');
 					
-					console.log('BODY: ' + body);
-				}else{
-					console.log('status code: ' + response.statusCode);
-				}*/
-			//console.log('STATUS: ' + res.statusCode);
-			//console.log('HEADERS: ' + JSON.stringify(res.headers));
-			//res.setEncoding('utf8');
-			/*res.on('data', function (chunk) {
-				console.log('BODY: ' + chunk);
-				});*/
-			})
+			request({
+					method: 'POST',
+					headers:  {
+						'Content-Type': 'application/json',
+						'Accept' : 'application/json'
+						},
+					//url: "http://localhost:8085/telemetry/instance/data",
+					url:consumptionEndPoint,
+					json: consumption
+					//form : consumption
+			}, function(error, response, body) {
+					console.log('error:', error); // Print the error if one occurred
+					//console.log('body:', body);
+					var responsejson = body;
+					var length=responsejson[0].series.length;
+					var totalConsumption=0;
+					if(length>0){
+					var startConsumption =responsejson[0].series[0].value;
+					var endConsumption= responsejson[0].series[length -1 ].value;
+					var tempconsumption = endConsumption - startConsumption;
+					totalConsumption= precisionRound(tempconsumption,1);
+					//totalConsumption=Math.pow(getConsumption(body),1);
+					//totalConsumption = getConsumption(body);
+					}
+					session.send('Your total consumption so far for the month  is '+ totalConsumption+' meter cubes.');
+					
+				
+			});
 
 		}else{
 			session.send('Please enter a valid MeterId');
@@ -247,7 +273,22 @@ bot.dialog('handleConsumption', [
     }
 });
 
-
+function precisionRound(number, precision) {
+  var factor = Math.pow(10, precision);
+  return Math.round(number * factor) / factor;
+}
+function getConsumption(body){
+	
+	var responsejson = body;
+	var length=responsejson[0].series.length;
+	var totalConsumption=0;
+	if(length>0){
+	var startConsumption =responsejson[0].series[0].value;
+	var endConsumption= responsejson[0].series[length -1 ].value;
+	var totalConsumption= endConsumption - startConsumption;
+	}
+	return totalConsumption;
+}
 
 bot.dialog('NA', [
     function (session) {
