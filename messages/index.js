@@ -207,7 +207,13 @@ bot.dialog('handleConsumption', [
 						'Content-Type': 'application/json; charset=utf8',
 						'Accept' : 'application/json'
 			}
-			var consumption={"vendorId":1,"customerId":5,"blockId":0,"houseId":1234,"startTime":"2018-04-01","endTime":"2018-04-15","Location_Details":"Yes","sampleDistance": "Day","sampleDistanceValue": 1,"metrics": "readings","defaultValueForMissingData":0};
+			var now = new Date();
+			var endDate = now.toJSON();
+			
+			var startDate=new Date(now.getFullYear (),now.getMonth(),1);
+			var startJson= startDate.toJSON();
+			//var startJson=now.getFullYear ()+'-'+now.getMonth()+'-01';
+			var consumption={"vendorId":1,"customerId":5,"blockId":0,"houseId":meterId,"startTime":startJson,"endTime":endDate,"Location_Details":"Yes","sampleDistance": "Day","sampleDistanceValue": 1,"metrics": "readings","defaultValueForMissingData":0};
 			//var obj = JSON.parse(consumption);
 			//console.log('json is %s',obj);
 		/*	var options = {
@@ -243,16 +249,19 @@ bot.dialog('handleConsumption', [
 					console.log('error:', error); // Print the error if one occurred
 					//console.log('body:', body);
 					var responsejson = body;
-					var length=responsejson[0].series.length;
+					var tempconsumption = getConsumption(body);
+					var totalConsumption= precisionRound(tempconsumption,1);
+				/*	var length=responsejson[0].series.length;
 					var totalConsumption=0;
 					if(length>0){
 					var startConsumption =responsejson[0].series[0].value;
 					var endConsumption= responsejson[0].series[length -1 ].value;
 					var tempconsumption = endConsumption - startConsumption;
+					
 					totalConsumption= precisionRound(tempconsumption,1);
 					//totalConsumption=Math.pow(getConsumption(body),1);
 					//totalConsumption = getConsumption(body);
-					}
+					}*/
 					session.send('Your total consumption so far for the month  is '+ totalConsumption+' meter cubes.');
 					
 				
