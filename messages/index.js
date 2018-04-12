@@ -168,6 +168,7 @@ bot.dialog('handleBilling', [
 		var reg = new RegExp('/^(?:[1-9]\d*|\d)$/');
 		var validity=isANumber(meterId);
 		var consumptionEndPoint=process.env['ConsumptionServiceEndpoint'];
+		var supplyEndPoint=process.env['supplyServiceEndpoint'];
 		if(validity){
 			session.conversationData.meterId=meterId;
 			var header = {
@@ -179,40 +180,33 @@ bot.dialog('handleBilling', [
 			
 			var startDate=new Date(now.getFullYear (),now.getMonth(),1);
 			var startJson= startDate.toJSON();
+			console.log('Invoking supply/last');
 			//var startJson=now.getFullYear ()+'-'+now.getMonth()+'-01';
 			var consumption={"vendorId":1,"customerId":5,"blockId":0,"houseId":meterId,"startTime":startJson,"endTime":endDate,"Location_Details":"Yes","sampleDistance": "Day","sampleDistanceValue": 1,"metrics": "readings","defaultValueForMissingData":0};
 		   var request = require('request');
-					
+			var url= supplyEndPoint+meterId;		
 			request({
-					method: 'POST',
+					method: 'GET',
 					headers:  {
 						'Content-Type': 'application/json',
 						'Accept' : 'application/json'
 						},
 					//url: "http://localhost:8085/telemetry/instance/data",
-					url:consumptionEndPoint,
-					json: consumption
+					url:url
+					//json: consumption
 					//form : consumption
 			}, function(error, response, body) {
 					console.log('error:', error); // Print the error if one occurred
-					//console.log('body:', body);
+					/*console.log('body:', body);
+					console.log('Projeted consumption:', body.projectedCurrentMonthConsumption);*/
+					var respObj=JSON.parse(body);
 					var responsejson = body;
-					var tempconsumption = getConsumption(body);
-					var totalConsumption= precisionRound(tempconsumption,1);
-					var billSoFar = totalConsumption *10;
 					
-					var currentDate= new Date();
-					var dayofmonth=currentDate.getDate();
-					var projectedconsumption=totalConsumption;
-					if(dayofmonth <30){
-						
-						var averageConsumptionPerDay=totalConsumption/dayofmonth;
-						var daysRemaining=30- dayofmonth;
-						var remainingconsumption=averageConsumptionPerDay*daysRemaining;
-						projectedconsumption=precisionRound((totalConsumption+remainingconsumption),1);
-						
-					}
-					var projectedbill=projectedconsumption *10;
+					
+					var projectedconsumption=respObj.projectedCurrentMonthConsumption;
+					var totalConsumption= respObj.currentMonthConsumptionTillDate;
+					var billSoFar=precisionRound((totalConsumption*10),1);
+					var projectedbill=respObj.projectedRevenueThisMonth;
 				
 					session.send('Your consumption till date far for this month  is '+ totalConsumption+' meter cubes.');
 					session.send('Your projected consumption for this month  is '+ projectedconsumption+' meter cubes.');
@@ -244,6 +238,7 @@ bot.dialog('handleLastMonthBilling', [
 		var reg = new RegExp('/^(?:[1-9]\d*|\d)$/');
 		var validity=isANumber(meterId);
 		var consumptionEndPoint=process.env['ConsumptionServiceEndpoint'];
+		var supplyEndPoint=process.env['supplyServiceEndpoint'];
 		if(validity){
 			session.conversationData.meterId=meterId;
 			var header = {
@@ -267,35 +262,32 @@ bot.dialog('handleLastMonthBilling', [
 			var startJson= startDate.toJSON();
 			
 			var endJson= endDate.toJSON();
-			
+			var url= supplyEndPoint+meterId;		
 			//var startJson=now.getFullYear ()+'-'+now.getMonth()+'-01';
 			var consumption={"vendorId":1,"customerId":5,"blockId":0,"houseId":meterId,"startTime":startJson,"endTime":endJson,"Location_Details":"Yes","sampleDistance": "Day","sampleDistanceValue": 1,"metrics": "readings","defaultValueForMissingData":0};
 		   var request = require('request');
 					
 			request({
-					method: 'POST',
+					method: 'GET',
 					headers:  {
 						'Content-Type': 'application/json',
 						'Accept' : 'application/json'
 						},
 					//url: "http://localhost:8085/telemetry/instance/data",
-					url:consumptionEndPoint,
-					json: consumption
+					url:url
+					//json: consumption
 					//form : consumption
 			}, function(error, response, body) {
 					console.log('error:', error); // Print the error if one occurred
-					//console.log('body:', body);
-					var responsejson = body;
-					var tempconsumption = getConsumption(body);
-					var totalConsumption= precisionRound(tempconsumption,1);
-					var billSoFar = totalConsumption *10;
+					
+					var respObj=JSON.parse(body);
 					
 					
-				
+					var totalConsumption= respObj.lastMonthConsumption;
+					var billSoFar = respObj.revenueLastMonth;
+					
 					session.send('Your last month consumption   is '+ totalConsumption+' meter cubes.');
-					
 					session.send('Your bill for last  month  is '+ billSoFar+' rupees.');
-					
 					session.endDialog();
 				
 			});
@@ -325,6 +317,7 @@ bot.dialog('handleConsumption', [
 		var reg = new RegExp('/^(?:[1-9]\d*|\d)$/');
 		var validity=isANumber(meterId);
 		var consumptionEndPoint=process.env['ConsumptionServiceEndpoint'];
+		var supplyEndPoint=process.env['supplyServiceEndpoint'];
 		if(validity){
 			session.conversationData.meterId=meterId;
 			var header = {
@@ -339,35 +332,24 @@ bot.dialog('handleConsumption', [
 			//var startJson=now.getFullYear ()+'-'+now.getMonth()+'-01';
 			var consumption={"vendorId":1,"customerId":5,"blockId":0,"houseId":meterId,"startTime":startJson,"endTime":endDate,"Location_Details":"Yes","sampleDistance": "Day","sampleDistanceValue": 1,"metrics": "readings","defaultValueForMissingData":0};
 		   var request = require('request');
-					
+			var url= supplyEndPoint+meterId;			
 			request({
-					method: 'POST',
+					method: 'GET',
 					headers:  {
 						'Content-Type': 'application/json',
 						'Accept' : 'application/json'
 						},
 					//url: "http://localhost:8085/telemetry/instance/data",
-					url:consumptionEndPoint,
-					json: consumption
-					//form : consumption
+					url:url
+					
 			}, function(error, response, body) {
 					console.log('error:', error); // Print the error if one occurred
 					//console.log('body:', body);
-					var responsejson = body;
-					var tempconsumption = getConsumption(body);
-					var totalConsumption= precisionRound(tempconsumption,1);
 					
-					var currentDate= new Date();
-					var dayofmonth=currentDate.getDate();
-					var projectedconsumption=totalConsumption;
-					if(dayofmonth <30){
-						
-						var averageConsumptionPerDay=totalConsumption/dayofmonth;
-						var daysRemaining=30- dayofmonth;
-						var remainingconsumption=averageConsumptionPerDay*daysRemaining;
-						projectedconsumption=precisionRound((totalConsumption+remainingconsumption),1);
-						
-					}
+					var respObj=JSON.parse(body);
+					
+					var totalConsumption=respObj.currentMonthConsumptionTillDate;
+					var projectedconsumption=respObj.projectedCurrentMonthConsumption;
 					
 				
 					session.send('Your consumption till date far for this month  is '+ totalConsumption+' meter cubes.');
