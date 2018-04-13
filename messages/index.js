@@ -208,10 +208,10 @@ bot.dialog('handleBilling', [
 					var billSoFar=precisionRound((totalConsumption*10),1);
 					var projectedbill=respObj.projectedRevenueThisMonth;
 				
-					session.send('Your consumption till date far for this month  is '+ totalConsumption+' meter cubes.');
-					session.send('Your projected consumption for this month  is '+ projectedconsumption+' meter cubes.');
-					session.send('Your bill till date  for this month  is '+ billSoFar+' rupees.');
-					session.send('Your projected bill for this month  is '+ projectedbill+' rupees.');
+				//	session.send('Your consumption till date far for this month  is '+ totalConsumption+' meter cubes.');
+				//	session.send('Your projected consumption for this month  is '+ projectedconsumption+' meter cubes.');
+					session.send('Your bill  amount till date  for this month  is '+ billSoFar+' rupees.');
+				//	session.send('Your projected bill for this month  is '+ projectedbill+' rupees.');
 					session.endDialog();
 				
 			});
@@ -286,7 +286,7 @@ bot.dialog('handleLastMonthBilling', [
 					var totalConsumption= respObj.lastMonthConsumption;
 					var billSoFar = respObj.revenueLastMonth;
 					
-					session.send('Your last month consumption   is '+ totalConsumption+' meter cubes.');
+				//	session.send('Your last month consumption   is '+ totalConsumption+' meter cubes.');
 					session.send('Your bill for last  month  is '+ billSoFar+' rupees.');
 					session.endDialog();
 				
@@ -353,7 +353,7 @@ bot.dialog('handleConsumption', [
 					
 				
 					session.send('Your consumption till date far for this month  is '+ totalConsumption+' meter cubes.');
-					session.send('Your estimated consumption for this month  is '+ projectedconsumption+' meter cubes.');
+				//	session.send('Your estimated consumption for this month  is '+ projectedconsumption+' meter cubes.');
 					session.endDialog();
 				
 			});
